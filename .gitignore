@@ -1,0 +1,4 @@
+build
+*.gch
+compile_commands.json
+.cache
