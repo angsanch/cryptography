@@ -27,6 +27,7 @@ namespace params {
         for (int i = 0; i < argc; i ++) {
             args[i] = argv[i];
         }
+        system = args[offset];
         offset += 1;
         mode = modes[args[offset]];
         if (mode == Mode::GENERATE) {
@@ -53,9 +54,9 @@ namespace params {
         }
     }
 
-    std::unique_ptr<crypto::ICrypto> Params::getSystem() const
+    std::unique_ptr<crypto::ICrypto> Params::getSystem()
     {
-        return (nullptr);
+        return (factory.create(system, key));
     }
 
     Mode Params::getMode() const
