@@ -48,13 +48,14 @@ int main(int argc, char **argv)
         case params::Mode::CIPHER:
         {
             auto system = args.getSystem();
-            if (args.isBlock()) {
-            } else {
-                std::cerr << system->cipher(std::cin, std::cout) << std::endl;
-            }
+            std::cerr << system->cipher(std::cin, std::cout, args.isBlock()) << std::endl;
         }
             break;
         case params::Mode::DECIPHER:
+        {
+            auto system = args.getSystem();
+            std::cerr << system->decipher(std::cin, std::cout, args.isBlock()) << std::endl;
+        }
             break;
         default:
             throw std::runtime_error("Invalid mode");
