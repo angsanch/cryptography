@@ -52,6 +52,9 @@ namespace crypto {
     {
         std::vector<uint8_t> buffer(std::istreambuf_iterator<char>(is), {});
 
+        if (block && !buffer.empty() && buffer.back() == '\n')
+            buffer.pop_back();
+        
         if (block && buffer.size() != key.size())
             throw std::invalid_argument("When used block mode the msg and key needs to be the same size");
 
@@ -67,6 +70,9 @@ namespace crypto {
     std::size_t Xor::decipher(std::istream &is, std::ostream &os, bool block)
     {
         std::vector<uint8_t> buffer(std::istreambuf_iterator<char>(is), {});
+
+        if (block && !buffer.empty() && buffer.back() == '\n')
+            buffer.pop_back();
 
         if (block && buffer.size() != key.size())
             throw std::invalid_argument("When used block mode the msg and key needs to be the same size");

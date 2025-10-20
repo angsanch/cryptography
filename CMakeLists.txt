@@ -12,6 +12,7 @@ add_executable(my_pgp
     src/Crypto.cpp
     src/Crypto/Factory.cpp
     src/Crypto/Xor.cpp
+    src/Crypto/Aes.cpp
 )
 
 target_link_libraries(my_pgp PRIVATE

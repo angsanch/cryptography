@@ -19,6 +19,7 @@ namespace crypto {
         std::map<std::string, std::unique_ptr<ICrypto> (crypto::SystemFactory::*)(const std::string &)> functions;
 
         std::unique_ptr<ICrypto> _xor(const std::string &key);
+        std::unique_ptr<ICrypto> _aes(const std::string &key);
     public:
         SystemFactory();
 

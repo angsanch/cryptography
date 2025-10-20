@@ -8,11 +8,13 @@
 #include "Crypto/Factory.hpp"
 
 #include "Crypto/Xor.hpp"
+#include "Crypto/Aes.hpp"
 
 namespace crypto {
     SystemFactory::SystemFactory()
     {
         functions["xor"] = &crypto::SystemFactory::_xor;
+        functions["aes"] = &crypto::SystemFactory::_aes;
     }
 
     std::unique_ptr<ICrypto> SystemFactory::create(const std::string &name, const std::string &key)
@@ -27,5 +29,10 @@ namespace crypto {
     std::unique_ptr<ICrypto> SystemFactory::_xor(const std::string &key)
     {
         return (std::make_unique<Xor>(key));
+    }
+
+    std::unique_ptr<ICrypto> SystemFactory::_aes(const std::string &key)
+    {
+        return (std::make_unique<Aes>(key));
     }
 };
