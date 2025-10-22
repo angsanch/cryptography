@@ -2,7 +2,7 @@
 ** EPITECH PROJECT, 2025
 ** Aes.cpp
 ** File description:
-** AES-128 algorithm implementation 
+** AES-128 algorithm implementation
 */
 
 #include "Crypto/Aes.hpp"
@@ -79,11 +79,11 @@ namespace crypto {
         return result;
     }
 
-    void Aes::keyExpansion() 
+    void Aes::keyExpansion()
     {
         for (int i = 0; i < 4; i++) // Copia clave original
             roundKeys[i] = key[i];
-        
+
         for (int i = 4; i < 44; i++) {
             uint32_t temp = roundKeys[i - 1];
             if (i % 4 == 0) {
@@ -152,7 +152,7 @@ namespace crypto {
         state[11] = state[15];
         state[15] = temp;
     }
-    
+
     uint8_t Aes::gmul(uint8_t a, uint8_t b)
     {
         uint8_t result = 0;
@@ -248,13 +248,13 @@ namespace crypto {
 
         if (block && !buffer.empty() && buffer.back() == '\n')
             buffer.pop_back();
-        
+
         if (block && buffer.size() != 16)
             throw std::invalid_argument("AES error, input size must be 16 bytes in block mode");
-        
+
         while (buffer.size() % 16 != 0)
             buffer.push_back(0x00);
-        
+
         std::vector<uint8_t> result;
         for (size_t i = 0; i < buffer.size(); i += 16) {
             std::vector<uint8_t> block(buffer.begin() + i, buffer.begin() + i + 16);
@@ -282,13 +282,13 @@ namespace crypto {
 
         if (block && !buffer.empty() && buffer.back() == '\n')
             buffer.pop_back();
-        
+
         if (block && buffer.size() != 16)
             throw std::invalid_argument("AES error, input size must be 16 bytes in block mode");
-        
+
         if (buffer.size() % 16 != 0)
             throw std::invalid_argument("AES error, input size must be 16 bytes in block mode");
-        
+
         std::vector<uint8_t> result;
         for (size_t i = 0; i < buffer.size(); i += 16) {
             std::vector<uint8_t> block(buffer.begin() + i, buffer.begin() + i + 16);

@@ -18,13 +18,13 @@ namespace crypto {
 
         static const uint8_t sbox[256];
         static const uint8_t inv_sbox[256];
-        
+
         static const uint8_t rcon[11];
 
         void keyExpansion();
         uint32_t subWord(uint32_t word);
         uint32_t rotWord(uint32_t word);
-        
+
         void subBytes(std::array<uint8_t, 16> &state);
         void invSubBytes(std::array<uint8_t, 16> &state);
         void shiftRows(std::array<uint8_t, 16> &state);
@@ -32,9 +32,9 @@ namespace crypto {
         void mixColumns(std::array<uint8_t, 16> &state);
         void invMixColumns(std::array<uint8_t, 16> &state);
         void addRoundKey(std::array<uint8_t, 16> &state, int round);
-        
+
         uint8_t gmul(uint8_t a, uint8_t b);
-        
+
         void encryptBlock(std::array<uint8_t, 16> &block);
         void decryptBlock(std::array<uint8_t, 16> &block);
 
