@@ -10,10 +10,12 @@ add_executable(my_pgp
     src/Main.cpp
     src/Params.cpp
     src/Streams.cpp
+    src/Crypto/RsaKeys.cpp
     src/Crypto/Factory.cpp
     src/Crypto/Xor.cpp
     # src/Crypto/Aes.cpp
 )
 
 target_link_libraries(my_pgp PRIVATE
+    gmp
 )

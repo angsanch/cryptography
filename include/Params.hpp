@@ -28,6 +28,7 @@ namespace params {
         bool block = false;
         std::string key;
         bool providedKey = false;
+        std::tuple<std::string, std::string> primes;
 
         crypto::SystemFactory factory;
 
@@ -37,5 +38,6 @@ namespace params {
         std::unique_ptr<crypto::ICrypto> getSystem();
         Mode getMode() const;
         bool isBlock() const;
+        const std::tuple<std::string, std::string> &getPrimes() const;
     };
 };

@@ -11,6 +11,8 @@
 #include "Params.hpp"
 #include "Streams.hpp"
 
+#include "Crypto/Rsa.hpp"
+
 static void print_help(void)
 {
     std::cout <<
@@ -60,6 +62,15 @@ int main(int argc, char **argv)
             io::Input in(std::cin, true);
             io::Output out(std::cout, false);
             std::cerr << system->decipher(in, out, args.isBlock()) << std::endl;
+        }
+            break;
+        case params::Mode::GENERATE:
+        {
+            auto &primes = args.getPrimes();
+            auto keys = crypto::RSAkeys(std::get<0>(primes), std::get<1>(primes));
+
+            std::cout << "public key: " << std::get<0>(keys) <<
+                "\nprivate key: " << std::get<1>(keys) << std::endl;
         }
             break;
         default:

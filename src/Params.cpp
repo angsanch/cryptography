@@ -31,6 +31,7 @@ namespace params {
         offset += 1;
         mode = modes[args[offset]];
         if (mode == Mode::GENERATE) {
+            primes = std::make_tuple(args[offset + 1], args[offset + 2]);
             offset += 2;
         }
         offset += 1;
@@ -67,5 +68,10 @@ namespace params {
     bool Params::isBlock() const
     {
         return (block);
+    }
+
+    const std::tuple<std::string, std::string> &Params::getPrimes() const
+    {
+        return (primes);
     }
 };
