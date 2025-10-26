@@ -13,7 +13,7 @@ add_executable(my_pgp
     src/Crypto/RsaKeys.cpp
     src/Crypto/Factory.cpp
     src/Crypto/Xor.cpp
-    # src/Crypto/Aes.cpp
+    src/Crypto/Aes.cpp
     src/Crypto/Rsa.cpp
 )
 
