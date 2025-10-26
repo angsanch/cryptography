@@ -20,8 +20,9 @@ namespace crypto {
 
         while (true) {
             std::vector<uint8_t> data;
-            if (!is.readChunk(data, key.size()))
-                break;
+            if (is.readChunk(data, key.size()) < key.size() && !block)
+                while(data.size() < key.size())
+                    data.push_back(0);
             len += data.size();
             data = cipher(data);
             os.writeChunk(data);

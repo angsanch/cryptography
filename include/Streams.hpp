@@ -20,7 +20,7 @@ namespace io {
     public:
         Input(std::istream &_is, bool _hex=false);
 
-        bool readChunk(std::vector<uint8_t> &vec, std::size_t size);
+        std::size_t readChunk(std::vector<uint8_t> &vec, std::size_t size);
     };
 
     class Output {

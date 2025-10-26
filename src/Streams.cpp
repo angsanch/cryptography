@@ -41,21 +41,17 @@ namespace io {
     {
     }
 
-    bool Input::readChunk(std::vector<uint8_t> &vec, std::size_t size)
+    std::size_t Input::readChunk(std::vector<uint8_t> &vec, std::size_t size)
     {
         if (hex) {
             std::string buff(size * 2, '\0');
             is.read(buff.data(), size * 2);
-            if (static_cast<std::size_t>(is.gcount()) != size * 2)
-                return (false);
             buff >> vec;
         } else {
             vec.resize(size);
             is.read(reinterpret_cast<char *>(vec.data()), size);
-            if (static_cast<std::size_t>(is.gcount()) != size)
-                return (false);
         }
-        return (true);
+        return (vec.size());
     }
 
     Output::Output(std::ostream &_os, bool _hex)
