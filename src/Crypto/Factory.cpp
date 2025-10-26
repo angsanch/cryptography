@@ -9,12 +9,14 @@
 
 #include "Crypto/Xor.hpp"
 #include "Crypto/Aes.hpp"
+#include "Crypto/Rsa.hpp"
 
 namespace crypto {
     SystemFactory::SystemFactory()
     {
         functions["xor"] = &crypto::SystemFactory::_xor;
         functions["aes"] = &crypto::SystemFactory::_aes;
+        functions["rsa"] = &crypto::SystemFactory::_rsa;
     }
 
     std::unique_ptr<ICrypto> SystemFactory::create(const std::string &name, const std::string &key)
@@ -36,5 +38,10 @@ namespace crypto {
         // return (std::make_unique<Aes>(key));
         (void) key;
         return (nullptr);
+    }
+
+    std::unique_ptr<ICrypto> SystemFactory::_rsa(const std::string &key)
+    {
+        return (std::make_unique<Rsa>(key));
     }
 };

@@ -21,6 +21,7 @@ namespace io {
         Input(std::istream &_is, bool _hex=false);
 
         std::size_t readChunk(std::vector<uint8_t> &vec, std::size_t size);
+        bool getHex() const;
     };
 
     class Output {
@@ -32,6 +33,7 @@ namespace io {
         Output(std::ostream &_os, bool _hex=false);
 
         bool writeChunk(std::vector<uint8_t> &vec);
+        bool getHex() const;
     };
 
     std::ostream &operator <<(std::ostream &os, const std::vector<uint8_t> &data);

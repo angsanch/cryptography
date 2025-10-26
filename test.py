@@ -50,7 +50,7 @@ class Crypto(unittest.TestCase):
     def test_rsa_decrypt_long(self):
         result = run_binary("rsa -d 81b08f4eb6dd8a4dd21728e5194dfc4e349829c9991c8b5e44b31e6ceee1e56a11d66ef23389be92ef7a4178470693f509c90b86d4a1e1831056ca0757f3e209-c9f91a9ff3bd6d84005b9cc8448296330bd23480f8cf8b36fd4edd0a8cd925de139a0076b962f4d57f50d6f9e64e7c41587784488f923dd60136c763fd602fb3", "445b349e7318ad6af16b0bbb718be88ba1c41751f95751cd58857f88fe31f970405c6ec3f16d79172543bf4e571b5596d212f3e79cd08ef14abd244e325b80")
         self.assertEqual(result.returncode, 0)
-        self.assertEqual("The night is dark and full of terrors\n", result.stdout)
+        self.assertEqual("The night is dark and full of terrors", result.stdout)
 
 if __name__ == "__main__":
     unittest.main()

@@ -5,42 +5,7 @@
 ** Generate keys
 */
 
-#include <iostream>
-#include <gmpxx.h>
-#include <string>
-
 #include "Crypto/Rsa.hpp"
-
-std::string bigintToHex(const mpz_class& num)
-{
-    std::string bigEndian = num.get_str(16);
-    if (bigEndian.size() % 2 != 0)
-        bigEndian = "0" + bigEndian;
-
-    std::string littleEndian;
-    for (size_t i = 0; i < bigEndian.size(); i += 2) {
-        littleEndian = bigEndian.substr(i, 2) + littleEndian;
-    }
-    return littleEndian;
-}
-
-mpz_class hexToBigint(const std::string& littleEndian)
-{
-    std::string hex = littleEndian;
-    if (hex.size() % 2 != 0)
-        hex = "0" + hex;
-
-    std::string bigEndian;
-    for (size_t i = 0; i < hex.size(); i += 2) {
-        bigEndian = hex.substr(i, 2) + bigEndian;
-    }
-
-    try {
-        return mpz_class(bigEndian, 16);
-    } catch(const std::exception &err) {
-        throw std::runtime_error(std::string("Invalid prime: ") + err.what() + ": " + littleEndian);
-    }
-}
 
 // MCD
 static mpz_class gcd(const mpz_class& a, const mpz_class& b)

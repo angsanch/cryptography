@@ -46,12 +46,21 @@ namespace io {
         if (hex) {
             std::string buff(size * 2, '\0');
             is.read(buff.data(), size * 2);
+            buff.resize(is.gcount());
             buff >> vec;
         } else {
             vec.resize(size);
             is.read(reinterpret_cast<char *>(vec.data()), size);
+            vec.resize(is.gcount());
         }
+        while (!vec.empty() && vec.back() == '\n')
+            vec.pop_back();
         return (vec.size());
+    }
+
+    bool Input::getHex() const
+    {
+        return (hex);
     }
 
     Output::Output(std::ostream &_os, bool _hex)
@@ -68,5 +77,10 @@ namespace io {
             os.write(reinterpret_cast<char *>(vec.data()), vec.size());
         }
         return (true);
+    }
+
+    bool Output::getHex() const
+    {
+        return (hex);
     }
 };

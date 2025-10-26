@@ -20,6 +20,7 @@ namespace crypto {
 
         std::unique_ptr<ICrypto> _xor(const std::string &key);
         std::unique_ptr<ICrypto> _aes(const std::string &key);
+        std::unique_ptr<ICrypto> _rsa(const std::string &key);
     public:
         SystemFactory();
 
