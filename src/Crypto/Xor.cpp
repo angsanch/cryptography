@@ -6,54 +6,48 @@
 */
 
 #include "Crypto/Xor.hpp"
-#include "ICrypto.hpp"
-#include <stdexcept>
-#include <algorithm>
 
 namespace crypto {
     Xor::Xor(const std::string &k)
     {
+        using io::operator >>;
         k >> key;
-        if (key.empty())
-            throw std::invalid_argument("XOR error, empty key");
     }
 
+    std::size_t Xor::cipher(io::Input &is, io::Output &os, bool block)
+    {
+        std::size_t len = 0;
+
+        while (true) {
+            std::vector<uint8_t> data;
+            if (!is.readChunk(data, key.size()))
+                break;
+            len += data.size();
+            data = cipher(data);
+            os.writeChunk(data);
+            if (block)
+                break;
+        }
+        return (len);
+    }
     std::vector<uint8_t> Xor::cipher(const std::vector<uint8_t> &in)
     {
-        std::vector<uint8_t> result(in.size());
-        for (size_t i = 0; i < in.size(); i++)
-        {
-            result[i] = in[i] ^ key[i % key.size()];
+        if (in.size() != key.size()) {
+            throw std::runtime_error("Key and data are not the same size");
         }
-        return result;
+        std::vector<uint8_t> result(key.size(), 0);
+        for (std::size_t i = 0; i < key.size(); i ++) {
+            result[i] = key[i] ^ in[i];
+        }
+        return (result);
     }
 
-    std::vector<uint8_t> Xor::decipher(const std::vector<uint8_t> &in)
-    {
-        return cipher(in);
-    }
-
-    std::size_t Xor::cipher(std::istream &is, std::ostream &os, bool block)
-    {
-        std::vector<uint8_t> buffer(std::istreambuf_iterator<char>(is), {});
-
-        if (block && !buffer.empty() && buffer.back() == '\n')
-            buffer.pop_back();
-
-        if (block && buffer.size() != key.size())
-            throw std::invalid_argument("When used block mode the msg and key needs to be the same size");
-
-        while (!block && buffer.size() % key.size() != 0)
-            buffer.push_back(0x00);
-
-        auto result = cipher(buffer);
-
-        os << result;
-        return result.size();
-    }
-
-    std::size_t Xor::decipher(std::istream &is, std::ostream &os, bool block)
+    std::size_t Xor::decipher(io::Input &is, io::Output &os, bool block)
     {
         return (cipher(is, os, block));
     }
-}
+    std::vector<uint8_t> Xor::decipher(const std::vector<uint8_t> &in)
+    {
+        return (cipher(in));
+    }
+};

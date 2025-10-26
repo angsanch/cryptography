@@ -9,6 +9,7 @@
 #include <iostream>
 
 #include "Params.hpp"
+#include "Streams.hpp"
 
 static void print_help(void)
 {
@@ -48,13 +49,17 @@ int main(int argc, char **argv)
         case params::Mode::CIPHER:
         {
             auto system = args.getSystem();
-            std::cerr << system->cipher(std::cin, std::cout, args.isBlock()) << std::endl;
+            io::Input in(std::cin, false);
+            io::Output out(std::cout, true);
+            std::cerr << system->cipher(in, out, args.isBlock()) << std::endl;
         }
             break;
         case params::Mode::DECIPHER:
         {
             auto system = args.getSystem();
-            std::cerr << system->decipher(std::cin, std::cout, args.isBlock()) << std::endl;
+            io::Input in(std::cin, true);
+            io::Output out(std::cout, false);
+            std::cerr << system->decipher(in, out, args.isBlock()) << std::endl;
         }
             break;
         default:

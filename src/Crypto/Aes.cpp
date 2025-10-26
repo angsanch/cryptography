@@ -242,7 +242,7 @@ namespace crypto {
         addRoundKey(block, 0);
     }
 
-    std::size_t Aes::cipher(std::istream &is, std::ostream &os, bool block)
+    std::size_t Aes::cipher(io::Input &is, io::Output &os, bool block)
     {
         std::vector<uint8_t> buffer(std::istreambuf_iterator<char>(is), {});
 
@@ -276,7 +276,7 @@ namespace crypto {
         return std::vector<uint8_t>(block.begin(), block.end());
     }
 
-    std::size_t Aes::decipher(std::istream &is, std::ostream &os, bool block)
+    std::size_t Aes::decipher(io::Input &is, io::Output &os, bool block)
     {
         std::vector<uint8_t> buffer(std::istreambuf_iterator<char>(is), {});
 
