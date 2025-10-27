@@ -57,22 +57,6 @@ namespace crypto {
         0x00,0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80,0x1b,0x36
     };
 
-    static inline void makeMatrixFromBytes(const std::vector<uint8_t> &in, std::array<std::array<uint8_t,4>,4> &m, size_t offset)
-    {
-        for (int col = 0; col < 4; ++col) {
-            for (int row = 0; row < 4; ++row) {
-                m[row][col] = in[offset + row + 4*col];
-            }
-        }
-    }
-
-    static inline void writeMatrixToVector(const std::array<std::array<uint8_t,4>,4> &m, std::vector<uint8_t> &out)
-    {
-        for (int col = 0; col < 4; ++col)
-            for (int row = 0; row < 4; ++row)
-                out.push_back(m[row][col]);
-    }
-
     Aes::Aes(const std::string &k)
     {
         if (k.length() != 32)
