@@ -12,10 +12,12 @@
 #include <sstream>
 #include <iomanip>
 #include <vector>
+#include <bit>
+
 
 namespace crypto {
 
-    const uint8_t Aes::sbox[256] = {
+    const uint8_t sbox[256] = {
         0x63,0x7c,0x77,0x7b,0xf2,0x6b,0x6f,0xc5,0x30,0x01,0x67,0x2b,0xfe,0xd7,0xab,0x76,
         0xca,0x82,0xc9,0x7d,0xfa,0x59,0x47,0xf0,0xad,0xd4,0xa2,0xaf,0x9c,0xa4,0x72,0xc0,
         0xb7,0xfd,0x93,0x26,0x36,0x3f,0xf7,0xcc,0x34,0xa5,0xe5,0xf1,0x71,0xd8,0x31,0x15,
@@ -34,7 +36,7 @@ namespace crypto {
         0x8c,0xa1,0x89,0x0d,0xbf,0xe6,0x42,0x68,0x41,0x99,0x2d,0x0f,0xb0,0x54,0xbb,0x16
     };
 
-    const uint8_t Aes::inv_sbox[256] = {
+    const uint8_t inv_sbox[256] = {
         0x52,0x09,0x6a,0xd5,0x30,0x36,0xa5,0x38,0xbf,0x40,0xa3,0x9e,0x81,0xf3,0xd7,0xfb,
         0x7c,0xe3,0x39,0x82,0x9b,0x2f,0xff,0x87,0x34,0x8e,0x43,0x44,0xc4,0xde,0xe9,0xcb,
         0x54,0x7b,0x94,0x32,0xa6,0xc2,0x23,0x3d,0xee,0x4c,0x95,0x0b,0x42,0xfa,0xc3,0x4e,
@@ -53,53 +55,66 @@ namespace crypto {
         0x17,0x2b,0x04,0x7e,0xba,0x77,0xd6,0x26,0xe1,0x69,0x14,0x63,0x55,0x21,0x0c,0x7d
     };
 
-    const uint8_t Aes::rcon[11] = {
+    const uint8_t rcon[11] = {
         0x00,0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80,0x1b,0x36
     };
+
+
+    Word &Word::rotWord()
+    {
+        if constexpr (std::endian::native == std::endian::big)
+            mUnion.word = (mUnion.word >> 24) | (mUnion.word << 8);
+        else
+            mUnion.word = (mUnion.word << 24) | (mUnion.word >> 8);
+        return (*this);
+    }
+
+    Word &Word::subBytes(bool reverse)
+    {
+        const uint8_t *box = (reverse) ? inv_sbox : sbox;
+
+        for (uint8_t i = 0; i < 4; i ++)
+            mUnion.bytes[i] = box[mUnion.bytes[i]];
+        return (*this);
+    }
+
+    Word &Word::applyRcon(uint8_t i)
+    {
+        mUnion.bytes[0] ^= rcon[i];
+
+        return (*this);
+    }
+
+    std::ostream &operator <<(std::ostream &os, const Word &word)
+    {
+        for (uint8_t i = 0; i < 4; i ++)
+            std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<uint32_t>(word.getByte(i));
+
+        return (os);
+    }
 
     Aes::Aes(const std::string &k)
     {
         if (k.length() != 32)
             throw std::invalid_argument("AES error, key must be 32 hex characters (128 bits)");
         uint8_t keyBytes[16];
-        for (size_t i = 0; i < 16; ++i) {
+        for (size_t i = 0; i < 16; i++)
             keyBytes[i] = static_cast<uint8_t>(std::stoul(k.substr(i*2, 2), nullptr, 16));
-        }
-        for (int i = 0; i < 4; ++i) {
-            key[i] = (static_cast<uint32_t>(keyBytes[4*i]) << 24) |
-                     (static_cast<uint32_t>(keyBytes[4*i + 1]) << 16) |
-                     (static_cast<uint32_t>(keyBytes[4*i + 2]) << 8) |
-                     (static_cast<uint32_t>(keyBytes[4*i + 3]) << 0);
-        }
+        for (int i = 0; i < 4; i++)
+            roundKeys[i] = Word(&keyBytes[i * 4]);
         keyExpansion();
-    }
 
-    uint32_t Aes::rotWord(uint32_t word)
-    {
-        return (word << 8) | (word >> 24);
-    }
-
-    uint32_t Aes::subWord(uint32_t word)
-    {
-        uint32_t r = 0;
-        r |= static_cast<uint32_t>(sbox[(word >> 24) & 0xFF]) << 24;
-        r |= static_cast<uint32_t>(sbox[(word >> 16) & 0xFF]) << 16;
-        r |= static_cast<uint32_t>(sbox[(word >> 8) & 0xFF]) << 8;
-        r |= static_cast<uint32_t>(sbox[(word >> 0) & 0xFF]) << 0;
-        return r;
+        for (const auto &i : roundKeys)
+            std::cout << i << std::endl;
     }
 
     void Aes::keyExpansion()
     {
-        for (int i = 0; i < 4; ++i)
-            roundKeys[i] = key[i];
-
-        for (int i = 4; i < 44; ++i) {
-            uint32_t temp = roundKeys[i - 1];
-            if (i % 4 == 0) {
-                temp = subWord(rotWord(temp)) ^ (static_cast<uint32_t>(rcon[i / 4]) << 24);
-            }
-            roundKeys[i] = roundKeys[i - 4] ^ temp;
+        for (int i = 4; i < 44; i++) {
+            Word prev = roundKeys[i - 1];
+            if (i % 4 == 0)
+                prev.rotWord().subBytes().applyRcon(i / 4);
+            roundKeys[i] = roundKeys[i - 4] ^ prev;
         }
     }
 
