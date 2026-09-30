@@ -13,9 +13,10 @@ std::string bigintToHex(const mpz_class& num)
     if (bigEndian.size() % 2 != 0)
         bigEndian = "0" + bigEndian;
 
-    std::string littleEndian;
+    std::string littleEndian(bigEndian.size(), '\0');
     for (size_t i = 0; i < bigEndian.size(); i += 2) {
-        littleEndian = bigEndian.substr(i, 2) + littleEndian;
+        littleEndian[bigEndian.size() - 2 - i] = bigEndian[i];
+        littleEndian[bigEndian.size() - 1 - i] = bigEndian[i + 1];
     }
     return littleEndian;
 }
@@ -26,9 +27,10 @@ mpz_class hexToBigint(const std::string& littleEndian)
     if (hex.size() % 2 != 0)
         hex = "0" + hex;
 
-    std::string bigEndian;
+    std::string bigEndian(hex.size(), '\0');
     for (size_t i = 0; i < hex.size(); i += 2) {
-        bigEndian = hex.substr(i, 2) + bigEndian;
+        bigEndian[hex.size() - 2 - i] = hex[i];
+        bigEndian[hex.size() - 1 - i] = hex[i + 1];
     }
 
     try {
@@ -89,23 +91,29 @@ namespace crypto {
     std::size_t Rsa::cipher(io::Input &is, io::Output &os, bool block)
     {
         std::size_t total = 0;
+        size_t bitLen = mpz_sizeinbase(n.get_mpz_t(), 2);
+        size_t chunkSize = is.getHex() ? 1 : (bitLen / 8 ? bitLen / 8 : 1);
 
         while (true) {
             std::vector<uint8_t> data = std::move(buff);
 
             while  (true) {
                 std::vector<uint8_t> reader;
-                if (is.readChunk(reader, 1) == 0) {
+                if (is.readChunk(reader, chunkSize) == 0) {
                     block = true;
                     break;
                 }
                 data.insert(data.end(), reader.begin(), reader.end());
                 if (bytesToBigint(data) >= n) {
-                    buff.push_back(data.back());
-                    data.pop_back();
+                    while (!data.empty() && bytesToBigint(data) >= n) {
+                        buff.push_back(data.back());
+                        data.pop_back();
+                    }
                     break;
                 }
             }
+            if (data.empty())
+                break;
             auto out = cipher(data);
             if (!os.getHex())
                 std::reverse(out.begin(), out.end());;
