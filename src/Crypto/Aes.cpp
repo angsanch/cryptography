@@ -35,273 +35,92 @@ namespace crypto {
         0xe1,0xf8,0x98,0x11,0x69,0xd9,0x8e,0x94,0x9b,0x1e,0x87,0xe9,0xce,0x55,0x28,0xdf,
         0x8c,0xa1,0x89,0x0d,0xbf,0xe6,0x42,0x68,0x41,0x99,0x2d,0x0f,0xb0,0x54,0xbb,0x16
     };
-
-    const uint8_t inv_sbox[256] = {
-        0x52,0x09,0x6a,0xd5,0x30,0x36,0xa5,0x38,0xbf,0x40,0xa3,0x9e,0x81,0xf3,0xd7,0xfb,
-        0x7c,0xe3,0x39,0x82,0x9b,0x2f,0xff,0x87,0x34,0x8e,0x43,0x44,0xc4,0xde,0xe9,0xcb,
-        0x54,0x7b,0x94,0x32,0xa6,0xc2,0x23,0x3d,0xee,0x4c,0x95,0x0b,0x42,0xfa,0xc3,0x4e,
-        0x08,0x2e,0xa1,0x66,0x28,0xd9,0x24,0xb2,0x76,0x5b,0xa2,0x49,0x6d,0x8b,0xd1,0x25,
-        0x72,0xf8,0xf6,0x64,0x86,0x68,0x98,0x16,0xd4,0xa4,0x5c,0xcc,0x5d,0x65,0xb6,0x92,
-        0x6c,0x70,0x48,0x50,0xfd,0xed,0xb9,0xda,0x5e,0x15,0x46,0x57,0xa7,0x8d,0x9d,0x84,
-        0x90,0xd8,0xab,0x00,0x8c,0xbc,0xd3,0x0a,0xf7,0xe4,0x58,0x05,0xb8,0xb3,0x45,0x06,
-        0xd0,0x2c,0x1e,0x8f,0xca,0x3f,0x0f,0x02,0xc1,0xaf,0xbd,0x03,0x01,0x13,0x8a,0x6b,
-        0x3a,0x91,0x11,0x41,0x4f,0x67,0xdc,0xea,0x97,0xf2,0xcf,0xce,0xf0,0xb4,0xe6,0x73,
-        0x96,0xac,0x74,0x22,0xe7,0xad,0x35,0x85,0xe2,0xf9,0x37,0xe8,0x1c,0x75,0xdf,0x6e,
-        0x47,0xf1,0x1a,0x71,0x1d,0x29,0xc5,0x89,0x6f,0xb7,0x62,0x0e,0xaa,0x18,0xbe,0x1b,
-        0xfc,0x56,0x3e,0x4b,0xc6,0xd2,0x79,0x20,0x9a,0xdb,0xc0,0xfe,0x78,0xcd,0x5a,0xf4,
-        0x1f,0xdd,0xa8,0x33,0x88,0x07,0xc7,0x31,0xb1,0x12,0x10,0x59,0x27,0x80,0xec,0x5f,
-        0x60,0x51,0x7f,0xa9,0x19,0xb5,0x4a,0x0d,0x2d,0xe5,0x7a,0x9f,0x93,0xc9,0x9c,0xef,
-        0xa0,0xe0,0x3b,0x4d,0xae,0x2a,0xf5,0xb0,0xc8,0xeb,0xbb,0x3c,0x83,0x53,0x99,0x61,
-        0x17,0x2b,0x04,0x7e,0xba,0x77,0xd6,0x26,0xe1,0x69,0x14,0x63,0x55,0x21,0x0c,0x7d
-    };
-
     const uint8_t rcon[11] = {
         0x00,0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80,0x1b,0x36
     };
 
-
-    Word &Word::rotWord()
-    {
-        if constexpr (std::endian::native == std::endian::big)
-            mUnion.word = (mUnion.word >> 24) | (mUnion.word << 8);
-        else
-            mUnion.word = (mUnion.word << 24) | (mUnion.word >> 8);
-        return (*this);
-    }
-
-    Word &Word::subBytes(bool reverse)
-    {
-        const uint8_t *box = (reverse) ? inv_sbox : sbox;
-
-        for (uint8_t i = 0; i < 4; i ++)
-            mUnion.bytes[i] = box[mUnion.bytes[i]];
-        return (*this);
-    }
-
-    Word &Word::applyRcon(uint8_t i)
-    {
-        mUnion.bytes[0] ^= rcon[i];
-
-        return (*this);
-    }
-
-    std::ostream &operator <<(std::ostream &os, const Word &word)
-    {
-        for (uint8_t i = 0; i < 4; i ++)
-            std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<uint32_t>(word.getByte(i));
-
-        return (os);
-    }
-
     Aes::Aes(const std::string &k)
     {
-        if (k.length() != 32)
-            throw std::invalid_argument("AES error, key must be 32 hex characters (128 bits)");
-        uint8_t keyBytes[16];
-        for (size_t i = 0; i < 16; i++)
-            keyBytes[i] = static_cast<uint8_t>(std::stoul(k.substr(i*2, 2), nullptr, 16));
-        for (int i = 0; i < 4; i++)
-            roundKeys[i] = Word(&keyBytes[i * 4]);
-        keyExpansion();
-
-        for (const auto &i : roundKeys)
-            std::cout << i << std::endl;
-    }
-
-    void Aes::keyExpansion()
-    {
-        for (int i = 4; i < 44; i++) {
-            Word prev = roundKeys[i - 1];
-            if (i % 4 == 0)
-                prev.rotWord().subBytes().applyRcon(i / 4);
-            roundKeys[i] = roundKeys[i - 4] ^ prev;
+        switch (k.length()) {
+            case 32:
+                mSize = AES_SIZE_128;
+                break;
+            case 48:
+                mSize = AES_SIZE_192;
+                break;
+            case 64:
+                mSize = AES_SIZE_256;
+                break;
+            default:
+                throw std::invalid_argument("AES error, key must be 32/48/64 hex characters (128/192/256 bits)");
         }
     }
 
-    void Aes::subBytes(std::array<uint8_t,16> &state)
+    std::vector<uint8_t> Aes::cipher(const std::vector<uint8_t> &in)
     {
-        for (int i = 0; i < 16; ++i)
-            state[i] = sbox[state[i]];
+        if (in.size() != keySize())
+            throw std::invalid_argument("AES block must match the key size");
+        std::vector<uint8_t> state = in;
+
+        // encryptBlock(state);
+
+        return (state);
     }
 
-    void Aes::invSubBytes(std::array<uint8_t,16> &state)
+    std::vector<uint8_t> Aes::decipher(const std::vector<uint8_t> &in)
     {
-        for (int i = 0; i < 16; ++i)
-            state[i] = inv_sbox[state[i]];
+        if (in.size() != keySize())
+            throw std::invalid_argument("AES decipher block must be exactly 16 bytes");
+        std::vector<uint8_t> state = in;
+
+        // decryptBlock(state);
+
+        return (state);
     }
 
-    void Aes::shiftRows(std::array<uint8_t,16> &state)
-    {
-        uint8_t tmp;
-        tmp = state[1]; state[1] = state[5]; state[5] = state[9]; state[9] = state[13]; state[13] = tmp;
-
-        tmp = state[2]; state[2] = state[10]; state[10] = tmp;
-        tmp = state[6]; state[6] = state[14]; state[14] = tmp;
-
-        tmp = state[15]; state[15] = state[11]; state[11] = state[7]; state[7] = state[3]; state[3] = tmp;
-    }
-
-    void Aes::invShiftRows(std::array<uint8_t,16> &state)
-    {
-        uint8_t tmp;
-
-        tmp = state[13]; state[13] = state[9]; state[9] = state[5]; state[5] = state[1]; state[1] = tmp;
-
-        tmp = state[2]; state[2] = state[10]; state[10] = tmp;
-        tmp = state[6]; state[6] = state[14]; state[14] = tmp;
-
-        tmp = state[3]; state[3] = state[7]; state[7] = state[11]; state[11] = state[15]; state[15] = tmp;
-    }
-
-    uint8_t Aes::gmul(uint8_t a, uint8_t b)
-    {
-        uint8_t p = 0;
-        for (int i = 0; i < 8; ++i) {
-            if (b & 1) p ^= a;
-            bool hi = (a & 0x80);
-            a <<= 1;
-            if (hi) a ^= 0x1b;
-            b >>= 1;
-        }
-        return p;
-    }
-
-    void Aes::mixColumns(std::array<uint8_t,16> &state)
-    {
-        for (int c = 0; c < 4; ++c) {
-            int i = 4*c;
-            uint8_t s0 = state[i+0], s1 = state[i+1], s2 = state[i+2], s3 = state[i+3];
-            uint8_t r0 = gmul(s0,2) ^ gmul(s1,3) ^ s2 ^ s3;
-            uint8_t r1 = s0 ^ gmul(s1,2) ^ gmul(s2,3) ^ s3;
-            uint8_t r2 = s0 ^ s1 ^ gmul(s2,2) ^ gmul(s3,3);
-            uint8_t r3 = gmul(s0,3) ^ s1 ^ s2 ^ gmul(s3,2);
-            state[i+0] = r0; state[i+1] = r1; state[i+2] = r2; state[i+3] = r3;
-        }
-    }
-
-    void Aes::invMixColumns(std::array<uint8_t,16> &state)
-    {
-        for (int c = 0; c < 4; ++c) {
-            int i = 4*c;
-            uint8_t s0 = state[i+0], s1 = state[i+1], s2 = state[i+2], s3 = state[i+3];
-            state[i+0] = gmul(s0,0x0e) ^ gmul(s1,0x0b) ^ gmul(s2,0x0d) ^ gmul(s3,0x09);
-            state[i+1] = gmul(s0,0x09) ^ gmul(s1,0x0e) ^ gmul(s2,0x0b) ^ gmul(s3,0x0d);
-            state[i+2] = gmul(s0,0x0d) ^ gmul(s1,0x09) ^ gmul(s2,0x0e) ^ gmul(s3,0x0b);
-            state[i+3] = gmul(s0,0x0b) ^ gmul(s1,0x0d) ^ gmul(s2,0x09) ^ gmul(s3,0x0e);
-        }
-    }
-
-    void Aes::addRoundKey(std::array<uint8_t,16> &state, int round)
-    {
-        for (int col = 0; col < 4; ++col) {
-            uint32_t rk = roundKeys[round*4 + col];
-            for (int row = 0; row < 4; ++row) {
-                uint8_t kb = static_cast<uint8_t>((rk >> (24 - row*8)) & 0xFF);
-                state[row + 4*col] ^= kb;
-            }
-        }
-    }
-
-    void Aes::encryptBlock(std::array<uint8_t,16> &block)
-    {
-        addRoundKey(block, 0);
-        for (int round = 1; round <= 9; ++round) {
-            subBytes(block);
-            shiftRows(block);
-            mixColumns(block);
-            addRoundKey(block, round);
-        }
-        subBytes(block);
-        shiftRows(block);
-        addRoundKey(block, 10);
-    }
-
-    void Aes::decryptBlock(std::array<uint8_t,16> &block)
-    {
-        addRoundKey(block, 10);
-        for (int round = 9; round >= 1; --round) {
-            invShiftRows(block);
-            invSubBytes(block);
-            addRoundKey(block, round);
-            invMixColumns(block);
-        }
-        invShiftRows(block);
-        invSubBytes(block);
-        addRoundKey(block, 0);
-    }
-
-std::vector<uint8_t> Aes::cipher(const std::vector<uint8_t> &in)
-{
-    if (in.size() != 16)
-        throw std::invalid_argument("AES cipher block must be exactly 16 bytes");
-
-    std::array<uint8_t,16> state;
-    std::copy(in.begin(), in.end(), state.begin());
-
-    encryptBlock(state);
-
-    std::vector<uint8_t> out(state.begin(), state.end());
-    return out;
-}
-
-std::vector<uint8_t> Aes::decipher(const std::vector<uint8_t> &in)
-{
-    if (in.size() != 16)
-        throw std::invalid_argument("AES decipher block must be exactly 16 bytes");
-
-    std::array<uint8_t,16> state;
-    std::copy(in.begin(), in.end(), state.begin());
-
-    decryptBlock(state);
-
-    std::vector<uint8_t> out(state.begin(), state.end());
-    return out;
-}
-
-    
     std::size_t Aes::cipher(io::Input &is, io::Output &os, bool block)
     {
         std::vector<uint8_t> buffer;
+        std::size_t total = 0;
+
         if (block) {
-            is.readChunk(buffer, 16);
-            if (buffer.size() < 16) buffer.resize(16, 0x00);
-        } else {
-            is.readChunk(buffer, 4096);
-            while (buffer.size() % 16 != 0) buffer.push_back(0x00);
+            is.readChunk(buffer, keySize());
+            std::vector<uint8_t> encrypted = cipher(buffer);
+            os.writeChunk(encrypted);
+            return (buffer.size());
         }
 
-        std::vector<uint8_t> result;
-        for (size_t i = 0; i < buffer.size(); i += 16) {
-            std::vector<uint8_t> chunk(buffer.begin() + i, buffer.begin() + i + 16);
-            auto enc = cipher(chunk);
-            result.insert(result.end(), enc.begin(), enc.end());
+        while (true) {
+            if (is.readChunk(buffer, keySize()) == 0)
+                break;
+            while (buffer.size() < keySize()) buffer.push_back('\0');
+            total += buffer.size();
+            std::vector<uint8_t> encrypted = cipher(buffer);
+            os.writeChunk(encrypted);
         }
-
-        os.writeChunk(result);
-        return result.size();
+        return (total);
     }
 
-std::size_t Aes::decipher(io::Input &is, io::Output &os, bool block)
+    std::size_t Aes::decipher(io::Input &is, io::Output &os, bool block)
     {
         std::vector<uint8_t> buffer;
+        std::size_t total = 0;
+
         if (block) {
-            is.readChunk(buffer, 16);
-            if (buffer.size() != 16)
-                throw std::invalid_argument("AES block size must be 16 bytes");
-        } else {
-            is.readChunk(buffer, 4096);
-            if (buffer.size() % 16 != 0)
-                throw std::invalid_argument("AES ciphertext must be multiple of 16 bytes");
+            is.readChunk(buffer, keySize());
+            std::vector<uint8_t> encrypted = decipher(buffer);
+            os.writeChunk(encrypted);
+            return (buffer.size());
         }
 
-        std::vector<uint8_t> result;
-        for (size_t i = 0; i < buffer.size(); i += 16) {
-            std::vector<uint8_t> chunk(buffer.begin() + i, buffer.begin() + i + 16);
-            auto dec = decipher(chunk);
-            result.insert(result.end(), dec.begin(), dec.end());
+        while (true) {
+            if (is.readChunk(buffer, keySize()) == 0)
+                break;
+            while (buffer.size() < keySize()) buffer.push_back('\0');
+            total += buffer.size();
+            std::vector<uint8_t> encrypted = decipher(buffer);
+            os.writeChunk(encrypted);
         }
-
-        os.writeChunk(result);
-        return result.size();
+        return (total);
     }
 }
