@@ -100,6 +100,32 @@ namespace crypto {
                 mKey[g].bytes[j] = static_cast<uint8_t>(std::stoul(k.substr(pos, 2), nullptr, 16));
             }
         }
+        keyExpansion();
+    }
+
+    void Aes::keyExpansion()
+    {
+        const std::size_t nk = mKey.size();
+        const std::size_t total = 4 * (getNr() + 1);
+
+        mKey.resize(total);
+        for (std::size_t i = nk; i < total; i++) {
+            uint8_t temp[4];
+
+            for (std::size_t j = 0; j < 4; j++)
+                temp[j] = mKey[i - 1].bytes[j];
+            if (i % nk == 0) {
+                std::rotate(std::begin(temp), std::begin(temp) + 1, std::end(temp));
+                for (auto &b : temp)
+                    b = sbox[b];
+                temp[0] ^= rcon[i / nk];
+            } else if (nk > 6 && i % nk == 4) {
+                for (auto &b : temp)
+                    b = sbox[b];
+            }
+            for (std::size_t j = 0; j < 4; j++)
+                mKey[i].bytes[j] = mKey[i - nk].bytes[j] ^ temp[j];
+        }
     }
 
 

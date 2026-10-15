@@ -38,6 +38,8 @@ namespace crypto {
         std::vector<uint8_t> processVector(const std::vector<uint8_t> &in, enum AESAction action);
         std::size_t processStream(io::Input &is, io::Output &os, bool block, enum AESAction action);
 
+        void keyExpansion();
+
         void encryptBlock(std::span<uint8_t, 16> state);
         void decryptBlock(std::span<uint8_t, 16> state);
 
