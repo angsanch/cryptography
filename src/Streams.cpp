@@ -82,6 +82,11 @@ namespace io {
         return (true);
     }
 
+    void Output::writeString(const std::string &text)
+    {
+        os << text;
+    }
+
     bool Output::getHex() const
     {
         return (hex);

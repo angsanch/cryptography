@@ -7,6 +7,7 @@
 #pragma once
 
 #include <iostream>
+#include <string>
 #include <vector>
 #include <cstddef>
 #include <cstdint>
@@ -33,6 +34,7 @@ namespace io {
         Output(std::ostream &_os, bool _hex=false);
 
         bool writeChunk(std::vector<uint8_t> &vec);
+        void writeString(const std::string &text);
         bool getHex() const;
     };
 
