@@ -12,8 +12,6 @@
 #include <sstream>
 #include <iomanip>
 #include <vector>
-#include <bit>
-
 
 namespace crypto {
 
@@ -39,6 +37,46 @@ namespace crypto {
         0x00,0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80,0x1b,0x36
     };
 
+    namespace {
+        struct InvSbox {
+            uint8_t table[256];
+
+            InvSbox()
+            {
+                for (std::size_t i = 0; i < 256; i++)
+                    table[sbox[i]] = static_cast<uint8_t>(i);
+            }
+        };
+        const InvSbox invSbox;
+
+        uint8_t xtime(uint8_t x)
+        { return static_cast<uint8_t>((x << 1) ^ ((x & 0x80) ? 0x1b : 0x00)); }
+
+        uint8_t gmul(uint8_t a, uint8_t b)
+        {
+            uint8_t result = 0;
+
+            while (b) {
+                if (b & 1)
+                    result ^= a;
+                a = xtime(a);
+                b >>= 1;
+            }
+            return (result);
+        }
+
+        void reverseWordOrder(std::vector<uint8_t> &data)
+        {
+            if (data.size() % 4 != 0)
+                return;
+            std::size_t words = data.size() / 4;
+
+            for (std::size_t g = 0; g < words / 2; g++)
+                std::swap_ranges(data.begin() + 4 * g, data.begin() + 4 * g + 4,
+                                 data.begin() + 4 * (words - 1 - g));
+        }
+    }
+
     Aes::Aes(const std::string &k)
     {
         switch (k.length()) {
@@ -54,71 +92,141 @@ namespace crypto {
             default:
                 throw std::invalid_argument("AES error, key must be 32/48/64 hex characters (128/192/256 bits)");
         }
+
+        mKey.resize(k.length() / 8);
+        for (std::size_t g = 0; g < mKey.size(); g++) {
+            for (std::size_t j = 0; j < 4; j++) {
+                std::size_t pos = 8 * g + 2 * (3 - j);
+                mKey[g].bytes[j] = static_cast<uint8_t>(std::stoul(k.substr(pos, 2), nullptr, 16));
+            }
+        }
     }
 
-    std::vector<uint8_t> Aes::cipher(const std::vector<uint8_t> &in)
+
+    void Aes::addRoundKey(std::span<uint8_t, 16> state, std::size_t wordIndex, [[maybe_unused]]enum AESAction action)
     {
-        if (in.size() != keySize())
-            throw std::invalid_argument("AES block must match the key size");
+        for (std::size_t c = 0; c < 4; c++)
+            for (std::size_t r = 0; r < 4; r++)
+                state[r + 4 * c] ^= mKey[wordIndex + c].bytes[r];
+    }
+
+    void Aes::shiftRows(std::span<uint8_t, 16> state, enum AESAction action)
+    {
+        uint8_t tmp[16];
+
+        for (std::size_t r = 0; r < 4; r++) {
+            for (std::size_t c = 0; c < 4; c++) {
+                std::size_t src = (action == AES_ENCRYPT) ? (c + r) % 4 : (c + 4 - r) % 4;
+                tmp[r + 4 * c] = state[r + 4 * src];
+            }
+        }
+        std::copy(tmp, tmp + 16, state.begin());
+    }
+
+    void Aes::subBytes(std::span<uint8_t, 16> state, enum AESAction action)
+    {
+        for (auto &b : state)
+            b = (action == AES_ENCRYPT) ? sbox[b] : invSbox.table[b];
+    }
+
+    void Aes::mixColumns(std::span<uint8_t, 16> state, enum AESAction action)
+    {
+        static const uint8_t encMatrix[4][4] = {
+            {0x02, 0x03, 0x01, 0x01},
+            {0x01, 0x02, 0x03, 0x01},
+            {0x01, 0x01, 0x02, 0x03},
+            {0x03, 0x01, 0x01, 0x02},
+        };
+        static const uint8_t decMatrix[4][4] = {
+            {0x0e, 0x0b, 0x0d, 0x09},
+            {0x09, 0x0e, 0x0b, 0x0d},
+            {0x0d, 0x09, 0x0e, 0x0b},
+            {0x0b, 0x0d, 0x09, 0x0e},
+        };
+        const uint8_t (&matrix)[4][4] = (action == AES_ENCRYPT) ? encMatrix : decMatrix;
+
+        for (std::size_t c = 0; c < 4; c++) {
+            uint8_t column[4] = {state[4 * c], state[4 * c + 1], state[4 * c + 2], state[4 * c + 3]};
+
+            for (std::size_t r = 0; r < 4; r++) {
+                uint8_t value = 0;
+
+                for (std::size_t k = 0; k < 4; k++)
+                    value ^= gmul(matrix[r][k], column[k]);
+                state[4 * c + r] = value;
+            }
+        }
+    }
+
+    void Aes::encryptBlock(std::span<uint8_t, 16> state)
+    {
+        addRoundKey(state, 0, AES_ENCRYPT);
+        for (unsigned int i = 1; i < getNr(); i++) {
+            subBytes(state, AES_ENCRYPT);
+            shiftRows(state, AES_ENCRYPT);
+            mixColumns(state, AES_ENCRYPT);
+            addRoundKey(state, i * 4, AES_ENCRYPT);
+        }
+        subBytes(state, AES_ENCRYPT);
+        shiftRows(state, AES_ENCRYPT);
+        addRoundKey(state, getNr() * 4, AES_ENCRYPT);
+    }
+
+    void Aes::decryptBlock(std::span<uint8_t, 16> state)
+    {
+        addRoundKey(state, getNr() * 4, AES_DECRYPT);
+        for (unsigned int i = getNr() - 1; i >= 1; i--) {
+            shiftRows(state, AES_DECRYPT);
+            subBytes(state, AES_DECRYPT);
+            addRoundKey(state, i * 4, AES_DECRYPT);
+            mixColumns(state, AES_DECRYPT);
+        }
+        shiftRows(state, AES_DECRYPT);
+        subBytes(state, AES_DECRYPT);
+        addRoundKey(state, 0, AES_DECRYPT);
+    }
+
+    std::vector<uint8_t> Aes::processVector(const std::vector<uint8_t> &in, enum AESAction action)
+    {
+        if (in.size() != 16)
+            throw std::invalid_argument("AES block must be 16 bytes in length");
         std::vector<uint8_t> state = in;
 
-        // encryptBlock(state);
+        if (action == AES_ENCRYPT)
+            encryptBlock(std::span<uint8_t, 16>(state));
+        else if (action == AES_DECRYPT)
+            decryptBlock(std::span<uint8_t, 16>(state));
 
         return (state);
     }
 
-    std::vector<uint8_t> Aes::decipher(const std::vector<uint8_t> &in)
-    {
-        if (in.size() != keySize())
-            throw std::invalid_argument("AES decipher block must be exactly 16 bytes");
-        std::vector<uint8_t> state = in;
-
-        // decryptBlock(state);
-
-        return (state);
-    }
-
-    std::size_t Aes::cipher(io::Input &is, io::Output &os, bool block)
+    std::size_t Aes::processStream(io::Input &is, io::Output &os, bool block, enum AESAction action)
     {
         std::vector<uint8_t> buffer;
         std::size_t total = 0;
 
         if (block) {
-            is.readChunk(buffer, keySize());
-            std::vector<uint8_t> encrypted = cipher(buffer);
+            if (is.readChunk(buffer, 16) != 16)
+                throw std::invalid_argument("AES block must be 16 bytes in length");
+            if (is.getHex())
+                reverseWordOrder(buffer);
+            std::vector<uint8_t> encrypted = processVector(buffer, action);
+            if (os.getHex())
+                reverseWordOrder(encrypted);
             os.writeChunk(encrypted);
             return (buffer.size());
         }
 
         while (true) {
-            if (is.readChunk(buffer, keySize()) == 0)
+            if (is.readChunk(buffer, 16) == 0)
                 break;
-            while (buffer.size() < keySize()) buffer.push_back('\0');
+            while (buffer.size() < 16) buffer.push_back('\0');
             total += buffer.size();
-            std::vector<uint8_t> encrypted = cipher(buffer);
-            os.writeChunk(encrypted);
-        }
-        return (total);
-    }
-
-    std::size_t Aes::decipher(io::Input &is, io::Output &os, bool block)
-    {
-        std::vector<uint8_t> buffer;
-        std::size_t total = 0;
-
-        if (block) {
-            is.readChunk(buffer, keySize());
-            std::vector<uint8_t> encrypted = decipher(buffer);
-            os.writeChunk(encrypted);
-            return (buffer.size());
-        }
-
-        while (true) {
-            if (is.readChunk(buffer, keySize()) == 0)
-                break;
-            while (buffer.size() < keySize()) buffer.push_back('\0');
-            total += buffer.size();
-            std::vector<uint8_t> encrypted = decipher(buffer);
+            if (is.getHex())
+                reverseWordOrder(buffer);
+            std::vector<uint8_t> encrypted = processVector(buffer, action);
+            if (os.getHex())
+                reverseWordOrder(encrypted);
             os.writeChunk(encrypted);
         }
         return (total);

@@ -36,7 +36,6 @@ namespace crypto {
     std::unique_ptr<ICrypto> SystemFactory::_aes(const std::string &key)
     {
         return (std::make_unique<Aes>(key));
-        return (nullptr);
     }
 
     std::unique_ptr<ICrypto> SystemFactory::_rsa(const std::string &key)
