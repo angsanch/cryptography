@@ -37,5 +37,5 @@ namespace io {
     };
 
     std::ostream &operator <<(std::ostream &os, const std::vector<uint8_t> &data);
-    const std::string &operator >>(const std::string &in, std::vector<uint8_t> &data);
+    std::string_view operator >>(std::string_view in, std::vector<uint8_t> &data);
 };
