@@ -31,6 +31,8 @@ namespace params {
         offset += 1;
         mode = modes[args[offset]];
         if (mode == Mode::GENERATE) {
+            if (offset + 2 >= argc)
+                throw std::runtime_error("Not enough arguments");
             primes = std::make_tuple(args[offset + 1], args[offset + 2]);
             offset += 2;
         }
@@ -49,6 +51,9 @@ namespace params {
 
         if (offset != argc) {
             throw std::runtime_error("Incorrect ammount of parameters");
+        }
+        if (mode != Mode::GENERATE && !providedKey) {
+            throw std::runtime_error("Not enough arguments");
         }
         if (providedKey && mode == Mode::GENERATE) {
             throw std::runtime_error("Cannot provide GENERATE MODE and a key at the same time");
