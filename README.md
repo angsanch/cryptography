@@ -87,7 +87,7 @@ WF
 ## Authors
 
 * **Daniel Sanchez** ([GitHub](https://github.com/angsanch) / [LinkedIn](https://www.linkedin.com/in/angeldanielsanchez/))
-* **Raquel Costumero**
+* **Raquel Costumero** ([GitHub](https://github.com/raquelcostumerofernandez) / [LinkedIn](https://www.linkedin.com/in/raquel-costumero-fern%C3%A1ndez/))
 
 ## License
 
