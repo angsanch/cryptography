@@ -20,7 +20,11 @@ namespace crypto {
 
         while (true) {
             std::vector<uint8_t> data;
-            if (is.readChunk(data, key.size()) < key.size() && !block)
+            std::size_t read = is.readChunk(data, key.size());
+
+            if (read == 0 && !block)
+                break;
+            if (read < key.size() && !block)
                 while(data.size() < key.size())
                     data.push_back(0);
             len += data.size();
